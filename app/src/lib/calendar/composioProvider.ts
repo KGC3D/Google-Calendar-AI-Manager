@@ -103,6 +103,36 @@ function normalizeEvent(ev: GCalEvent): EventSummary {
   };
 }
 
+// ---------- Timezone helpers ----------
+
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+// Convert a local ISO string (no Z, no offset) to a UTC Date in a given IANA timezone.
+// e.g. localToUTC("2024-01-15T09:00:00", "America/Denver") → the UTC instant that
+// corresponds to 9 AM Denver time on Jan 15.
+function localToUTC(localISO: string, tz: string): Date {
+  const trial = new Date(localISO + 'Z'); // treat as UTC to get a starting point
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(trial).map(({ type, value }) => [type, value])
+  );
+  const h = parts.hour === '24' ? 0 : +parts.hour;
+  const tzEquiv = Date.UTC(+parts.year, +parts.month - 1, +parts.day, h, +parts.minute, +parts.second);
+  return new Date(trial.getTime() + (trial.getTime() - tzEquiv));
+}
+
+function nextDateStr(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().split('T')[0];
+}
+
 // ---------- Free-slot computation ----------
 
 function computeFreeSlots(
@@ -110,26 +140,26 @@ function computeFreeSlots(
   params: FindFreeSlotsParams
 ): FreeSlot[] {
   const slots: FreeSlot[] = [];
-  const start = new Date(params.startDate);
-  const end = new Date(params.endDate);
+  const tz = params.timezone;
+
+  // Iterate days in the user's timezone (not server local time)
+  const startDateStr = new Date(params.startDate).toLocaleDateString('en-CA', { timeZone: tz });
+  const endDateStr   = new Date(params.endDate).toLocaleDateString('en-CA',   { timeZone: tz });
 
   const busy = busyPeriods
     .map((b) => ({ start: new Date(b.start), end: new Date(b.end) }))
     .sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  const cursor = new Date(start);
-  while (cursor <= end && slots.length < 5) {
-    // Build fresh day boundaries from cursor each iteration — no carryover between days
-    const dayStart = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), params.workdayStartHour, 0, 0, 0);
-    const dayEnd   = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), params.workdayEndHour,   0, 0, 0);
+  let currentDateStr = startDateStr;
+  while (currentDateStr <= endDateStr && slots.length < 5) {
+    // Workday bounds as UTC instants for the user's timezone
+    const dayStart = localToUTC(`${currentDateStr}T${pad(params.workdayStartHour)}:00:00`, tz);
+    const dayEnd   = localToUTC(`${currentDateStr}T${pad(params.workdayEndHour)}:00:00`,   tz);
 
-    // Reset windowStart to the start of this workday on every iteration
     let windowStart = new Date(dayStart);
 
     for (const period of busy) {
-      // Periods are sorted — once we pass dayEnd, all subsequent are irrelevant
-      if (period.start >= dayEnd) break;
-      // Skip periods entirely before the current window
+      if (period.start >= dayEnd) break; // sorted — nothing past dayEnd is relevant
       if (period.end <= windowStart) continue;
       const gapMs = period.start.getTime() - windowStart.getTime();
       if (gapMs >= params.durationMinutes * 60000) {
@@ -140,10 +170,9 @@ function computeFreeSlots(
         });
         if (slots.length >= 5) break;
       }
-      if (period.end > windowStart) windowStart = period.end;
+      if (period.end > windowStart) windowStart = new Date(period.end);
     }
 
-    // Check remaining gap after last busy period
     if (slots.length < 5) {
       const gapMs = dayEnd.getTime() - windowStart.getTime();
       if (gapMs >= params.durationMinutes * 60000) {
@@ -155,7 +184,7 @@ function computeFreeSlots(
       }
     }
 
-    cursor.setDate(cursor.getDate() + 1);
+    currentDateStr = nextDateStr(currentDateStr);
   }
 
   return slots;
@@ -233,6 +262,9 @@ class ComposioProvider implements ICalendarProvider {
     if (params.start && params.end && new Date(params.end) <= new Date(params.start)) {
       warnings.push('End time is before or equal to start time.');
     }
+    if (params.timezone && !isValidIANATimezone(params.timezone)) {
+      warnings.push(`Timezone "${params.timezone}" is not a valid IANA timezone.`);
+    }
     return {
       actionType: 'update',
       before,
@@ -251,6 +283,7 @@ class ComposioProvider implements ICalendarProvider {
       description: params.description,
       location: params.location,
       attendees: params.attendees?.map((email) => ({ email })),
+      timezone: params.timezone,
     });
     return normalizeEvent(data as GCalEvent);
   }

@@ -13,16 +13,21 @@ import type {
 
 // ---------- Composio client singleton ----------
 
-function getToolset() {
-  return new ComposioToolSet({ apiKey: process.env.COMPOSIO_API_KEY! });
+// Cached at module level — one instance per server process
+let _toolset: ComposioToolSet | null = null;
+function getToolset(): ComposioToolSet {
+  if (!_toolset) {
+    _toolset = new ComposioToolSet({ apiKey: process.env.COMPOSIO_API_KEY! });
+  }
+  return _toolset;
 }
 
 async function execute(action: string, params: Record<string, unknown> = {}) {
   const toolset = getToolset();
   let lastError: Error | null = null;
+  const MAX_RETRIES = 3;
 
-  // Retry up to 3 times for transient errors
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const result = await toolset.executeAction({
       action,
       params,
@@ -32,10 +37,15 @@ async function execute(action: string, params: Record<string, unknown> = {}) {
     if (result.successful) return result.data;
 
     const msg = result.error ?? `Action ${action} failed`;
-    lastError = new Error(friendlyError(msg));
+    const isRetryable = isTransient(msg);
 
-    // Only retry on transient errors
-    if (!isTransient(msg)) break;
+    // On final retry of a transient error, surface a retry-exhaustion message
+    if (isRetryable && attempt === MAX_RETRIES - 1) {
+      throw new Error(`Service temporarily unavailable after ${MAX_RETRIES} retries. ${friendlyError(msg)}`);
+    }
+
+    lastError = new Error(friendlyError(msg));
+    if (!isRetryable) break;
     await sleep(500 * 2 ** attempt);
   }
 
@@ -117,7 +127,10 @@ function computeFreeSlots(
     let windowStart = new Date(dayStart);
 
     for (const period of busy) {
-      if (period.end <= windowStart || period.start >= dayEnd) continue;
+      // Periods are sorted — once we pass dayEnd, all subsequent are irrelevant
+      if (period.start >= dayEnd) break;
+      // Skip periods entirely before the current window
+      if (period.end <= windowStart) continue;
       const gapMs = period.start.getTime() - windowStart.getTime();
       if (gapMs >= params.durationMinutes * 60000) {
         slots.push({

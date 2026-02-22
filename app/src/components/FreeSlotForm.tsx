@@ -1,25 +1,32 @@
 'use client';
 
 import { useState } from 'react';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import type { FreeSlot } from '@/lib/types';
 
-interface FreeSlotFormProps {
-  defaultTimezone: string;
-}
+export default function FreeSlotForm() {
+  const { timezone } = useTimezone();
 
-export default function FreeSlotForm({ defaultTimezone }: FreeSlotFormProps) {
-  const today = new Date().toISOString().split('T')[0];
+  const today    = new Date().toISOString().split('T')[0];
   const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
   const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(nextWeek);
-  const [duration, setDuration] = useState(30);
+  const [endDate,   setEndDate]   = useState(nextWeek);
+  const [duration,  setDuration]  = useState(30);
   const [workStart, setWorkStart] = useState(9);
-  const [workEnd, setWorkEnd] = useState(17);
-  const [timezone, setTimezone] = useState(defaultTimezone);
-  const [slots, setSlots] = useState<FreeSlot[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [workEnd,   setWorkEnd]   = useState(17);
+  const [slots,     setSlots]     = useState<FreeSlot[]>([]);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState('');
+
+  // Format a UTC ISO string for display in the selected timezone
+  function fmt(iso: string) {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    }).format(new Date(iso));
+  }
 
   async function handleFind() {
     setError('');
@@ -49,6 +56,8 @@ export default function FreeSlotForm({ defaultTimezone }: FreeSlotFormProps) {
 
   return (
     <div className="space-y-3">
+      <p className="text-xs text-blue-600 font-medium">Using timezone: {timezone}</p>
+
       <div className="grid grid-cols-2 gap-2 text-sm">
         <label className="flex flex-col gap-1">
           <span className="text-xs text-gray-500">Start date</span>
@@ -66,18 +75,12 @@ export default function FreeSlotForm({ defaultTimezone }: FreeSlotFormProps) {
             className="rounded border border-gray-200 px-2 py-1" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-gray-500">Timezone (IANA)</span>
-          <input type="text" value={timezone} onChange={(e) => setTimezone(e.target.value)}
-            placeholder="America/New_York"
-            className="rounded border border-gray-200 px-2 py-1" />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-gray-500">Work start (hour)</span>
+          <span className="text-xs text-gray-500">Work start (hour, 0–23)</span>
           <input type="number" min={0} max={23} value={workStart} onChange={(e) => setWorkStart(Number(e.target.value))}
             className="rounded border border-gray-200 px-2 py-1" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-gray-500">Work end (hour)</span>
+          <span className="text-xs text-gray-500">Work end (hour, 0–23)</span>
           <input type="number" min={0} max={23} value={workEnd} onChange={(e) => setWorkEnd(Number(e.target.value))}
             className="rounded border border-gray-200 px-2 py-1" />
         </label>
@@ -95,7 +98,7 @@ export default function FreeSlotForm({ defaultTimezone }: FreeSlotFormProps) {
           <p className="text-xs text-gray-500">Available slots ({timezone})</p>
           {slots.map((slot, i) => (
             <div key={i} className="flex items-center justify-between rounded-md border border-green-100 bg-green-50 px-3 py-2 text-xs text-gray-700">
-              <span>{new Date(slot.start).toLocaleString()} – {new Date(slot.end).toLocaleTimeString()}</span>
+              <span>{fmt(slot.start)} – {fmt(slot.end)}</span>
               <span className="text-gray-400">{slot.durationMinutes} min</span>
             </div>
           ))}

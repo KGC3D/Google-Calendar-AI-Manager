@@ -10,6 +10,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (/^[A-Z]{2,5}$/.test(params.timezone)) {
+      return NextResponse.json(
+        { error: `"${params.timezone}" is a timezone abbreviation. Use IANA format like America/New_York.` },
+        { status: 400 }
+      );
+    }
     const event = await composioProvider.confirmCreateEvent(params);
     return NextResponse.json(event);
   } catch (error) {

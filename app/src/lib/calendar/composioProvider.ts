@@ -105,7 +105,7 @@ function computeFreeSlots(
     const dayEnd = new Date(cursor);
     dayEnd.setHours(params.workdayEndHour, 0, 0, 0);
 
-    let windowStart = dayStart;
+    let windowStart = new Date(dayStart);
 
     for (const period of busy) {
       if (period.end <= windowStart || period.start >= dayEnd) continue;

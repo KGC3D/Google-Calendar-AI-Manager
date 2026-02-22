@@ -15,7 +15,7 @@ PHASE 0 - PREP (10-20 min)
 
 2) Decide project folder
 Example:
-- /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
+- ~/dev/Google-Calendar-AI-Manager/app
 
 3) Prepare integration account
 - Have Composio/Rube connection to Google Calendar ready
@@ -26,8 +26,8 @@ PHASE 1 - SCAFFOLD PROJECT (10 min)
 ==================================================
 Run:
 
-mkdir -p /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
-cd /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
+mkdir -p ~/dev/Google-Calendar-AI-Manager/app
+cd ~/dev/Google-Calendar-AI-Manager/app
 npx create-next-app@latest . --ts --tailwind --eslint --app --src-dir --import-alias "@/*"
 
 Then:
@@ -61,7 +61,7 @@ Create .env.local:
 
 COMPOSIO_API_KEY=YOUR_KEY
 COMPOSIO_ACCOUNT_ID=YOUR_CONNECTED_ACCOUNT
-DEFAULT_TIMEZONE=America/Denver
+DEFAULT_TIMEZONE=America/New_York
 APP_WRITE_CONFIRMATION_REQUIRED=true
 
 Paste this prompt into Claude Code:
@@ -157,7 +157,7 @@ PHASE 7 - VERCEL FREE DEPLOY (OPTIONAL)
 
 Quick commands:
 
-cd /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
+cd ~/dev/Google-Calendar-AI-Manager/app
 git init
 git add .
 git commit -m "Initial Calendar Copilot Lite MVP"

@@ -120,11 +120,11 @@ Open the file in any text editor and paste this, filling in your real values:
 ```
 COMPOSIO_API_KEY=paste_your_composio_api_key_here
 COMPOSIO_ACCOUNT_ID=paste_your_connected_account_id_here
-DEFAULT_TIMEZONE=America/Denver
+DEFAULT_TIMEZONE=America/New_York
 APP_WRITE_CONFIRMATION_REQUIRED=true
 ```
 
-Replace `America/Denver` with your actual timezone if different.
+Replace `America/New_York` with your actual timezone if different.
 Find your timezone name at: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 **Important:** This file is secret. Never share it or commit it to GitHub.
@@ -208,7 +208,7 @@ Keep UI simple, clean, and mobile-safe. Use Tailwind CSS.
 ```
 Add strict safety controls:
 - Show timezone label on every date/time input and display
-- Reject timezone abbreviations like EST or PST — require IANA format only (e.g. America/Denver)
+- Reject timezone abbreviations like EST or PST — require IANA format only (e.g. America/New_York)
 - Friendly error messages for 401, 403, and 429 responses
 - Disable the confirm button while a request is in flight (prevent double-submit)
 - Destructive actions (delete, bulk update) require the user to type a confirmation phrase

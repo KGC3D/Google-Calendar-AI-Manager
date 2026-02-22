@@ -1,7 +1,7 @@
 GOOGLE CALENDAR COPILOT LITE - PRODUCT + TECH SPEC
 Version: v1.0
 Date: 2026-02-22
-Owner: Kevin (solo build)
+Owner: Community (open source)
 Build Agent: Claude Code
 
 ==================================================
@@ -78,7 +78,7 @@ OUT OF SCOPE (MVP):
 - Delete requires explicit typed phrase: DELETE EVENT
 
 4. Timezone safety
-- Use IANA timezone only (example: America/Denver)
+- Use IANA timezone only (example: America/New_York)
 - Store default timezone in settings
 - Show timezone visibly on all date/time UI
 
@@ -203,7 +203,7 @@ AuditEntry
 Minimum:
 - COMPOSIO_API_KEY=...
 - COMPOSIO_ACCOUNT_ID=...         (or connected account id used by your toolkit flow)
-- DEFAULT_TIMEZONE=America/Denver
+- DEFAULT_TIMEZONE=America/New_York
 
 Optional:
 - APP_WRITE_CONFIRMATION_REQUIRED=true

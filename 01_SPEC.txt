@@ -1,0 +1,255 @@
+GOOGLE CALENDAR COPILOT LITE - PRODUCT + TECH SPEC
+Version: v1.0
+Date: 2026-02-22
+Owner: Kevin (solo build)
+Build Agent: Claude Code
+
+==================================================
+1) OBJECTIVE
+==================================================
+Build a very simple web UI (local first, optionally Vercel free) that lets you:
+- View upcoming events
+- Find free time slots
+- Create and update events with guardrails
+- Detect conflicts/double-bookings
+- Keep a visible action log
+
+The app is a controlled UI on top of calendar automation. It must be safe for beginners.
+
+==================================================
+2) SUCCESS CRITERIA
+==================================================
+Primary success criteria (week 1):
+- 100% of writes are intentional (no accidental create/update/delete)
+- 0 new double-bookings introduced by the app
+- At least 20 minutes/day saved in manual scheduling
+
+Secondary criteria:
+- Setup in under 90 minutes
+- Works on localhost and Vercel free tier
+- No backend database required for MVP
+
+==================================================
+3) SCOPE (MVP)
+==================================================
+IN SCOPE:
+1. Connection status panel
+- Show if calendar integration is connected and usable
+
+2. Today + next 7 days event list
+- Name, start, end, attendees count, meeting link if present
+
+3. Free slots finder
+- Inputs: duration, date range, working hours, timezone
+- Output: top 3-5 candidate slots
+
+4. Create event flow (safe)
+- Form-based create
+- Show preview before write
+- Require confirmation click
+
+5. Update/reschedule flow (safe)
+- Search event -> select event -> propose changes -> confirm
+
+6. Conflict scanner
+- Find overlapping events in chosen date range
+- One-click "suggest alternatives" (no auto-write)
+
+7. Audit log
+- Show all attempted actions (read/write), timestamp, result, error if any
+
+OUT OF SCOPE (MVP):
+- Multi-user auth and accounts
+- Auto-sending actions without user confirmation
+- Complex recurring-series editing UX
+- Full CRM features
+
+==================================================
+4) SAFETY + GUARDRAILS (NON-NEGOTIABLE)
+==================================================
+1. Dry-run mindset for writes
+- Every write must first generate a "Preview of change"
+
+2. Two-step confirmations
+- Step A: Preview
+- Step B: Confirm button
+
+3. Destructive actions
+- Delete requires explicit typed phrase: DELETE EVENT
+
+4. Timezone safety
+- Use IANA timezone only (example: America/Denver)
+- Store default timezone in settings
+- Show timezone visibly on all date/time UI
+
+5. Input validation
+- ISO/RFC3339 conversion on backend
+- Reject ambiguous natural language directly at tool layer
+
+6. Rate-limit resilience
+- Retry with backoff for transient errors
+- Friendly error text when provider returns 429/403
+
+==================================================
+5) ARCHITECTURE
+==================================================
+Recommended stack (simple + deployable):
+- Next.js 14+ (App Router, TypeScript)
+- Tailwind CSS
+- Minimal UI components (shadcn optional)
+- Server routes for provider calls
+
+Provider strategy:
+- Primary: Composio-backed Google Calendar tools (consistent with your current skill research)
+- Wrap provider in a single abstraction so you can later swap to direct Google API if needed
+
+High-level architecture:
+- Frontend pages/components
+- Next.js API routes (server-only secrets)
+- Provider adapter (Composio tool invocations)
+- No DB for MVP (settings + logs can start in localStorage)
+
+==================================================
+6) FUNCTIONAL SPEC BY SCREEN
+==================================================
+A) Dashboard (/)
+Sections:
+1. Connection Status Card
+- Connected/Not connected
+- Last check timestamp
+
+2. Agenda Panel
+- Today + upcoming events list
+- Filter by date range
+
+3. Free Slot Finder
+Inputs:
+- Start date, end date
+- Duration (minutes)
+- Working window (start/end hour)
+- Timezone
+Output:
+- Candidate slots list with "Create event in this slot"
+
+4. Conflict Detector
+- Button: Scan date range
+- Table: event A, event B, overlap duration
+
+5. Quick Actions
+- Create Event
+- Reschedule Event
+- Remove Attendee (optional in MVP if time permits)
+
+B) Action Modal (shared)
+- Step 1: User input
+- Step 2: Preview diff
+- Step 3: Confirm action
+- Step 4: Success/error feedback
+
+C) Logs Panel (/logs or on dashboard)
+- Action type, payload summary, result status, timestamp
+
+==================================================
+7) API CONTRACT (APP-SIDE)
+==================================================
+Define these routes:
+- GET /api/health
+- GET /api/connection
+- POST /api/events/list
+- POST /api/events/find-free-slots
+- POST /api/events/create-preview
+- POST /api/events/create-confirm
+- POST /api/events/update-preview
+- POST /api/events/update-confirm
+- POST /api/events/conflicts
+
+All write routes must support preview-first workflow.
+
+==================================================
+8) DATA MODELS (MINIMAL)
+==================================================
+UserSettings
+- timezone: string
+- workdayStartHour: number
+- workdayEndHour: number
+- defaultDurationMinutes: number
+
+EventSummary
+- id: string
+- summary: string
+- start: string
+- end: string
+- attendeesCount: number
+- location?: string
+- meetLink?: string
+
+ActionPreview
+- actionType: 'create' | 'update' | 'delete'
+- before?: object
+- after: object
+- warnings: string[]
+
+AuditEntry
+- id: string
+- timestamp: string
+- actionType: string
+- status: 'success' | 'error'
+- summary: string
+- errorMessage?: string
+
+==================================================
+9) ENVIRONMENT VARIABLES
+==================================================
+Minimum:
+- COMPOSIO_API_KEY=...
+- COMPOSIO_ACCOUNT_ID=...         (or connected account id used by your toolkit flow)
+- DEFAULT_TIMEZONE=America/Denver
+
+Optional:
+- APP_WRITE_CONFIRMATION_REQUIRED=true
+- APP_NAME=Calendar Copilot Lite
+
+Rule:
+- Never expose secrets in client-side code
+
+==================================================
+10) TEST + VERIFICATION PLAN
+==================================================
+Unit/logic checks:
+- Timezone conversion helper
+- Conflict detection helper
+- Preview diff generation
+
+Manual E2E checklist:
+1. Connection status returns connected
+2. List events for next 7 days works
+3. Free slots returns valid options
+4. Create preview shows exact payload
+5. Create confirm writes exactly once
+6. Update preview/confirm updates right event id
+7. Conflict scan catches known overlap test
+8. Delete requires typed confirmation phrase
+
+==================================================
+11) DEPLOYMENT SPEC
+==================================================
+Localhost:
+- npm run dev
+- Use .env.local
+
+Vercel free:
+- Push to GitHub
+- Import project in Vercel
+- Add same env vars in Vercel settings
+- Verify health route and one read-only calendar action first
+
+==================================================
+12) FUTURE ENHANCEMENTS (POST-MVP)
+==================================================
+- Natural-language command box with strict parser
+- Daily automation summaries
+- Gmail integration for attendee/email lookup
+- Persistent backend logs (Supabase/Postgres)
+- Role-based access controls
+
+END OF SPEC

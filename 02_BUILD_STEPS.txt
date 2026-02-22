@@ -1,0 +1,186 @@
+GOOGLE CALENDAR COPILOT LITE - BUILD STEPS (BEGINNER FRIENDLY)
+Version: v1.0
+Date: 2026-02-22
+
+Goal: Follow these steps in Claude Code to build and test the app quickly.
+
+==================================================
+PHASE 0 - PREP (10-20 min)
+==================================================
+1) Install tools
+- Node 20+
+- npm
+- Git
+- Vercel CLI (optional for deploy)
+
+2) Decide project folder
+Example:
+- /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
+
+3) Prepare integration account
+- Have Composio/Rube connection to Google Calendar ready
+- Confirm connection is ACTIVE before app build tests
+
+==================================================
+PHASE 1 - SCAFFOLD PROJECT (10 min)
+==================================================
+Run:
+
+mkdir -p /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
+cd /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
+npx create-next-app@latest . --ts --tailwind --eslint --app --src-dir --import-alias "@/*"
+
+Then:
+- npm run dev
+- Confirm app opens at http://localhost:3000
+
+==================================================
+PHASE 2 - ASK CLAUDE CODE TO IMPLEMENT BASE STRUCTURE
+==================================================
+Paste this prompt into Claude Code:
+
+"Build the base architecture for a simple Calendar Copilot Lite using Next.js App Router.
+Create:
+- src/app/page.tsx (dashboard shell)
+- src/app/api/health/route.ts
+- src/app/api/connection/route.ts
+- src/lib/calendar/provider.ts (interface)
+- src/lib/calendar/composioProvider.ts (stub implementation)
+- src/lib/types.ts (EventSummary, ActionPreview, AuditEntry, UserSettings)
+- src/components for StatusCard, EventList, FreeSlotForm, ActionPreviewModal, AuditLog
+Use TypeScript strictly. No secrets in client code."
+
+Verify:
+- App compiles with no TS errors
+- /api/health returns { ok: true }
+
+==================================================
+PHASE 3 - ENV + PROVIDER INTEGRATION
+==================================================
+Create .env.local:
+
+COMPOSIO_API_KEY=YOUR_KEY
+COMPOSIO_ACCOUNT_ID=YOUR_CONNECTED_ACCOUNT
+DEFAULT_TIMEZONE=America/Denver
+APP_WRITE_CONFIRMATION_REQUIRED=true
+
+Paste this prompt into Claude Code:
+
+"Implement server-side provider integration in composioProvider.ts and connect it to API routes.
+Add routes:
+- POST /api/events/list
+- POST /api/events/find-free-slots
+- POST /api/events/create-preview
+- POST /api/events/create-confirm
+- POST /api/events/update-preview
+- POST /api/events/update-confirm
+- POST /api/events/conflicts
+Use preview-first writes and validation."
+
+Verification:
+- Read-only routes work first
+- If write route is called without preview token/state, reject
+
+==================================================
+PHASE 4 - SIMPLE UI WORKFLOWS
+==================================================
+Paste this prompt into Claude Code:
+
+"Implement a minimal clean dashboard UI with these sections:
+1) Connection status
+2) Agenda list (today + next 7 days)
+3) Free slot finder form
+4) Create event flow (preview then confirm)
+5) Conflict scanner
+6) Audit log panel
+Keep UI simple and mobile-safe."
+
+Verification:
+- You can list events
+- You can find slots
+- Create flow requires preview + confirm
+- Audit log captures success/error states
+
+==================================================
+PHASE 5 - GUARDRAILS + ERROR HANDLING
+==================================================
+Paste this prompt into Claude Code:
+
+"Add strict safety controls:
+- Visible timezone everywhere
+- Reject invalid timezone abbreviations (EST/PST)
+- Friendly errors for 401/403/429
+- Disable confirm button while request in flight
+- Delete/update destructive actions require explicit typed confirmation"
+
+Verification:
+- Invalid timezone input is blocked
+- Duplicate click does not create duplicate writes
+
+==================================================
+PHASE 6 - TESTING CHECKLIST (MANUAL)
+==================================================
+Run through this exact test matrix:
+
+1. Connection
+- Expected: connected status shown
+
+2. List events
+- Expected: upcoming events render correctly
+
+3. Free slots
+- Expected: 3-5 valid slots appear in selected range
+
+4. Create preview
+- Expected: diff shown before write
+
+5. Create confirm
+- Expected: event appears in calendar once
+
+6. Update preview + confirm
+- Expected: exact selected event is modified
+
+7. Conflict scan
+- Expected: known overlaps detected
+
+8. Error handling
+- Expected: revoked token shows clear re-auth message
+
+==================================================
+PHASE 7 - VERCEL FREE DEPLOY (OPTIONAL)
+==================================================
+1) Push repo to GitHub
+2) Import project in Vercel
+3) Add env vars in Vercel project settings
+4) Deploy
+5) Smoke test production URL with read-only actions first
+
+Quick commands:
+
+cd /Users/kevinguaman/dev/Personal/Google_Calendar_Test/app
+git init
+git add .
+git commit -m "Initial Calendar Copilot Lite MVP"
+
+# then connect GitHub remote and push
+
+==================================================
+PHASE 8 - OPERATING RULES (DAILY USE)
+==================================================
+- Always start with read-only checks
+- Do not run bulk write actions without preview
+- Keep logs for every action
+- If behavior looks wrong, revoke integration immediately and re-auth
+
+==================================================
+FAST START (ONE-COMMAND FLOW TO GIVE CLAUDE CODE)
+==================================================
+"Build the Calendar Copilot Lite MVP from the spec in 01_SPEC.txt. Implement in phases:
+(1) foundation,
+(2) provider integration,
+(3) UI,
+(4) guardrails,
+(5) manual test checklist.
+After each phase, run build/lint and summarize what passed/failed."
+
+END OF BUILD STEPS

@@ -53,6 +53,15 @@ function isTransient(msg: string) {
   return msg.includes('429') || msg.includes('500') || msg.includes('503');
 }
 
+function isValidIANATimezone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -100,11 +109,11 @@ function computeFreeSlots(
 
   const cursor = new Date(start);
   while (cursor <= end && slots.length < 5) {
-    const dayStart = new Date(cursor);
-    dayStart.setHours(params.workdayStartHour, 0, 0, 0);
-    const dayEnd = new Date(cursor);
-    dayEnd.setHours(params.workdayEndHour, 0, 0, 0);
+    // Build fresh day boundaries from cursor each iteration — no carryover between days
+    const dayStart = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), params.workdayStartHour, 0, 0, 0);
+    const dayEnd   = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), params.workdayEndHour,   0, 0, 0);
 
+    // Reset windowStart to the start of this workday on every iteration
     let windowStart = new Date(dayStart);
 
     for (const period of busy) {
@@ -181,8 +190,8 @@ class ComposioProvider implements ICalendarProvider {
     if (new Date(params.end) <= new Date(params.start)) {
       warnings.push('End time is before or equal to start time.');
     }
-    if (!Intl.supportedValuesOf('timeZone').includes(params.timezone)) {
-      warnings.push(`Timezone "${params.timezone}" may not be valid IANA format.`);
+    if (!isValidIANATimezone(params.timezone)) {
+      warnings.push(`Timezone "${params.timezone}" is not a valid IANA timezone.`);
     }
     return { actionType: 'create', after: params, warnings };
   }

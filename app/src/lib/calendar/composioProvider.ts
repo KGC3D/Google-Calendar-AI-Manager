@@ -316,6 +316,13 @@ class ComposioProvider implements ICalendarProvider {
 
     return conflicts;
   }
+
+  async deleteEvent(eventId: string): Promise<void> {
+    await execute('GOOGLECALENDAR_DELETE_EVENT', {
+      event_id: eventId,
+      calendar_id: 'primary',
+    });
+  }
 }
 
 export const composioProvider = new ComposioProvider();

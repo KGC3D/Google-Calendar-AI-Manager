@@ -18,4 +18,5 @@ export interface ICalendarProvider {
   previewUpdateEvent(eventId: string, params: UpdateEventParams): Promise<ActionPreview>;
   confirmUpdateEvent(eventId: string, params: UpdateEventParams): Promise<EventSummary>;
   findConflicts(startDate: string, endDate: string): Promise<Conflict[]>;
+  deleteEvent(eventId: string): Promise<void>;
 }

@@ -4,6 +4,7 @@ import AuditLog from '@/components/AuditLog';
 import EventListContainer from '@/components/EventListContainer';
 import TimezoneSelector from '@/components/TimezoneSelector';
 import ConflictScanner from '@/components/ConflictScanner';
+import QuickActions from '@/components/QuickActions';
 
 export default function DashboardPage() {
   return (
@@ -28,6 +29,14 @@ export default function DashboardPage() {
             Upcoming Events — Today + 7 Days
           </h2>
           <EventListContainer />
+        </section>
+
+        {/* Quick Actions */}
+        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Quick Actions
+          </h2>
+          <QuickActions />
         </section>
 
         {/* Free Slot Finder */}

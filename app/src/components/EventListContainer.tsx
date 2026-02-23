@@ -29,7 +29,10 @@ export default function EventListContainer() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  // Empty deps is intentional — events are returned in UTC and don't change with timezone.
+  // timezone is only used by EventList for display formatting; it re-renders automatically
+  // when context updates without needing a refetch.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <p className="text-sm text-red-500">{error}</p>;
 
